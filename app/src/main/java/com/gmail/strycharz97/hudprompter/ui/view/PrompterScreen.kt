@@ -11,10 +11,12 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -22,12 +24,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.TextUnitType
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.gmail.strycharz97.hudprompter.viewmodel.PrompterViewModel
 
 @Composable
-fun PrompterScreen(navigateBack: () -> Unit){
+fun PrompterScreen(viewModel: PrompterViewModel = hiltViewModel(), navigateBack: () -> Unit){
   val content = """loooooool
     |second line
     |third line sadjiajklsjndfklasdjfo;ijkopiajfoijioasdjgfoijsaoifj;aojolfjlk;sdjfolkajl;kdfj;lkasdjfdjasoijf
@@ -49,13 +54,13 @@ fun PrompterScreen(navigateBack: () -> Unit){
   """.trimMargin()
 
   val scrollState = rememberScrollState()
-  var currentLine = remember { mutableStateOf(0) }
+  val currentLine by viewModel.currentLine.collectAsState()
 
   // State to hold line positions
   var linePositions by remember { mutableStateOf(emptyList<Int>()) }
 
   Box(Modifier.fillMaxSize()) {
-    OutlinedButton(onClick = { currentLine.value += 1 }, modifier = Modifier
+    OutlinedButton(onClick = {viewModel.nextLine() }, modifier = Modifier
       .align(Alignment.TopStart)
       .padding(4.dp)) {
       Icon(Icons.Filled.ArrowBack, null)
@@ -68,15 +73,15 @@ fun PrompterScreen(navigateBack: () -> Unit){
     ){
       Text(
         text = content,
-        fontSize = TextUnit(20f, TextUnitType.Sp),
+        style = MaterialTheme.typography.headlineLarge,
         modifier = Modifier.fillMaxWidth(),
         onTextLayout = { linePositions = getLinePositions(it) }
       )
     }
   }
   LaunchedEffect(currentLine, linePositions) {
-    if (linePositions.isNotEmpty() && currentLine.value in linePositions.indices) {
-      val offset = linePositions[currentLine.value]
+    if (linePositions.isNotEmpty() && currentLine in linePositions.indices) {
+      val offset = linePositions[currentLine]
       scrollState.animateScrollTo(offset)
     }
   }

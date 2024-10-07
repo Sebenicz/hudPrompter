@@ -1,5 +1,6 @@
 package com.gmail.strycharz97.hudprompter.ui.view
 
+import android.util.Log
 import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,12 +19,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.TextUnit
@@ -39,9 +43,30 @@ fun PrompterScreen(viewModel: PrompterViewModel = hiltViewModel(), navigateBack:
   val content by viewModel.content.collectAsState(initial = "")
   // State to hold line positions
   var linePositions by remember { mutableStateOf(emptyList<Int>()) }
-  var viewportHeight by remember { mutableStateOf(0) }
+  var viewportHeight by remember { mutableIntStateOf(0) }
+  val topPaddingPX = with(LocalDensity.current) { 24.dp.toPx().toInt() }
+  var textLayout by remember { mutableStateOf<TextLayoutResult?>(null) }
 
-  Box(Modifier.fillMaxSize()) {
+    //Updates last visibile index in viewModel when scrolling
+  LaunchedEffect(scrollState) {
+    snapshotFlow { scrollState.value }
+      .collect { scrollPosition ->
+        textLayout?.let {
+          viewModel.updateLastVisibleLine(
+            getLastVisibleLineIndex(
+              it,
+              scrollPosition,
+              viewportHeight
+            )
+          )
+        }
+      }
+  }
+
+  Box(
+    Modifier
+      .fillMaxSize()
+      .onSizeChanged { viewportHeight = it.height - topPaddingPX }) {
     OutlinedButton(onClick = {viewModel.nextLine() }, modifier = Modifier
       .align(Alignment.TopStart)
       .padding(4.dp)) {
@@ -52,7 +77,6 @@ fun PrompterScreen(viewModel: PrompterViewModel = hiltViewModel(), navigateBack:
         .fillMaxWidth()
         .padding(24.dp)
         .verticalScroll(scrollState)
-        .onSizeChanged { viewportHeight = it.height }
     ){
       Text(
         text = content,
@@ -61,7 +85,7 @@ fun PrompterScreen(viewModel: PrompterViewModel = hiltViewModel(), navigateBack:
         onTextLayout = {
           linePositions = getLinePositions(it)
           viewModel.update(getDisplayedLines(content, it))
-          viewModel.updateLastVisibleLine(getLastVisibleLineIndex(it, scrollState.value, viewportHeight))
+          textLayout = it
         }
       )
     }
@@ -94,14 +118,13 @@ private fun getLinePositions(textLayoutResult: TextLayoutResult): List<Int> {
   return positions
 }
 
-private fun getLastVisibleLineIndex( //TODO: does not work :/
+private fun getLastVisibleLineIndex(
   textLayoutResult: TextLayoutResult,
   scrollOffset: Int,
   viewportHeight: Int
 ): Int {
   // The visible range is from scrollOffset to (scrollOffset + viewportHeight)
   val visibleEnd = scrollOffset + viewportHeight
-
   // Find the last line where the line's top is less than visibleEnd
   return List(textLayoutResult.lineCount) { index ->
     textLayoutResult.getLineTop(index)

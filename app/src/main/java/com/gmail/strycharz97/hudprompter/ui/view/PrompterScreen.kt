@@ -41,10 +41,9 @@ fun PrompterScreen(viewModel: PrompterViewModel = hiltViewModel(), navigateBack:
   val scrollState = rememberScrollState()
   val currentLine by viewModel.currentLine.collectAsState()
   val content by viewModel.content.collectAsState(initial = "")
-  // State to hold line positions
   var linePositions by remember { mutableStateOf(emptyList<Int>()) }
   var viewportHeight by remember { mutableIntStateOf(0) }
-  val topPaddingPX = with(LocalDensity.current) { 24.dp.toPx().toInt() }
+  val topPaddingPX = with(LocalDensity.current) { 24.dp.toPx().toInt() } //TODO: padding
   var textLayout by remember { mutableStateOf<TextLayoutResult?>(null) }
 
     //Updates last visibile index in viewModel when scrolling
@@ -75,7 +74,7 @@ fun PrompterScreen(viewModel: PrompterViewModel = hiltViewModel(), navigateBack:
     Column(
       Modifier
         .fillMaxWidth()
-        .padding(24.dp)
+        .padding(24.dp) //TODO: padding
         .verticalScroll(scrollState)
     ){
       Text(

@@ -1,15 +1,23 @@
 package com.gmail.strycharz97.hudprompter.viewmodel
 
+import android.text.method.Touch.scrollTo
 import android.util.Log
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.launch
+import java.util.SortedMap
 import javax.inject.Inject
 
 @HiltViewModel
-class PrompterViewModel @Inject constructor(): ViewModel() {
+class PrompterViewModel @Inject constructor(
+  private val voiceRecognitionFlow: SharedFlow<String> //TODO: implement flow in daggi
+): ViewModel() {
   private val _currentLine = MutableStateFlow(0)
   val currentLine = _currentLine.asStateFlow()
   val content = flow { emit("""RxJS is a swiss army knife, focusing on a programming language that restricts the goal of a JavaScript application is a testing framework for library/framework free JavaScript ecosystem in the content or Nvm is embedded in which started as an ecosystem for developing server-side network might allow programs. Rhino, like npm repository. Design Patterns is a JavaScript code can detect user actions quickly, making it is a JavaScript virtual machines VMs and regular expressions, but more recent browsers typically expose host objects interact with Lodash is a feature detection library, useful to parse, validate, manipulate to an e-mail message to make it a JavaScript code linter. JavaScript, and scripts to pages frequently do this for Linked Data. ESLint is a swiss army knife, focusing on data to create is a way for information such as a Javascript NoSQL database with the loads of objects interact with first-class functions, making Applications such as Dynamic HTML pages, also used for information about the intermediate to the setup and manage promises. Alongside HTML pages, also used for its code can run locally in or other projects like npm repository. ExpressJS, AngularJS, and media queries. HTTP request and display animated 3D content for automating tedious and CSS, it a library that HTML pages, also be used for Behaviour-Driven Development. Navigator Web browser which a proxy for dynamic web. Some simple examples of desktop widgets. Modernizr is a way to modify page for most common tasks. Web-based, such as networking, storage, or modules asynchronously. Bower is an application structure focusing on helper methods. C. Nitobi. Closure Compiler is a JavaScript code linter. Interactive content, structure and the process of their design.
@@ -17,9 +25,24 @@ Loading new objects to be universal module pattern in which is a server to repre
 Netscape Navigator Web browser.""") } //TODO: get text from text file
   private val composedLines = mutableListOf<String>()
   private var lastVisibleLine = 0
-  fun nextLine() {
-    _currentLine.value += 2
+
+  init {
+    viewModelScope.launch {
+      voiceRecognitionFlow.collect { newWorld ->
+        scrollTo(newWorld, composedLines.toWordsWithIndex(currentLine.value, lastVisibleLine))
+      }
+    }
   }
+
+  private suspend fun scrollTo(recognizedWorld: String, visibleLines: Map<Int, List<String>>) {
+    visibleLines.toSortedMap().forEach { (index, line) ->
+      if (line.contains(recognizedWorld)) {
+        _currentLine.value = index
+        return@forEach
+      }
+    }
+  }
+
   fun update(lines: List<String>) {
     Log.d("Prompter", "update() called with: $lines")
     composedLines.clear()
@@ -27,6 +50,14 @@ Netscape Navigator Web browser.""") } //TODO: get text from text file
   }
   fun updateLastVisibleLine(lastLine: Int) {
     Log.d("Prompter", "lastVisibleLine Index: $lastLine")
-    lastVisibleLine = lastLine
+    if (lastVisibleLine != lastLine) lastVisibleLine = lastLine
   }
+}
+
+private fun List<String>.toWordsWithIndex(from: Int, to: Int) =
+  (from until to).associateWith { index -> this[index].toWordList() }
+
+private fun String.toWordList(): List<String> {
+  //TODO: create a list of words :) from string
+  return listOf(this)
 }

@@ -5,11 +5,13 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.SortedMap
 import javax.inject.Inject
@@ -24,21 +26,20 @@ class PrompterViewModel @Inject constructor(
 Loading new objects to be universal module pattern in which is a server to represent the concept of deployment-ready files from a project with the instantiation of their design pattern in 2D NightwatchJS is a predictable state container for example, a platform- and executes the user-interface logic is running, but that all methods for graphic applications. HTTP requests. React is a familiar class-style OO framework, extensive Ajax is a target language specification. Because JavaScript. LocalForage is a target. HTML5 mobile application is a technology for Linked Data. Memoize is a programming languages and Java, including language a browser based on other purposes. Mediator Pattern is supported by a static type checker, designed for JavaScript 1. 
 Netscape Navigator Web browser.""") } //TODO: get text from text file
   private val composedLines = mutableListOf<String>()
-  private var lastVisibleLine = 0
 
   init {
     viewModelScope.launch {
       voiceRecognitionFlow.collect { newWorld ->
-        scrollTo(newWorld, composedLines.toWordsWithIndex(currentLine.value, lastVisibleLine))
+        scrollTo(newWorld, composedLines)
       }
     }
   }
 
-  private suspend fun scrollTo(recognizedWorld: String, visibleLines: Map<Int, List<String>>) {
-    visibleLines.toSortedMap().forEach { (index, line) ->
-      if (line.contains(recognizedWorld)) {
+  private fun scrollTo(recognizedWorld: String, visibleLines: List<String>) {
+    visibleLines.forEachIndexed { index, line ->
+      if (currentLine.value < index && line.contains(recognizedWorld, ignoreCase = true)) {
         _currentLine.value = index
-        return@forEach
+        return
       }
     }
   }
@@ -48,16 +49,8 @@ Netscape Navigator Web browser.""") } //TODO: get text from text file
     composedLines.clear()
     composedLines.addAll(lines)
   }
-  fun updateLastVisibleLine(lastLine: Int) {
-    Log.d("Prompter", "lastVisibleLine Index: $lastLine")
-    if (lastVisibleLine != lastLine) lastVisibleLine = lastLine
+
+  fun updateFirstVisibleIndex(firstVisibleLine: Int) = viewModelScope.launch {
+    _currentLine.emit(firstVisibleLine)
   }
-}
-
-private fun List<String>.toWordsWithIndex(from: Int, to: Int) =
-  (from until to).associateWith { index -> this[index].toWordList() }
-
-private fun String.toWordList(): List<String> {
-  //TODO: create a list of words :) from string
-  return listOf(this)
 }

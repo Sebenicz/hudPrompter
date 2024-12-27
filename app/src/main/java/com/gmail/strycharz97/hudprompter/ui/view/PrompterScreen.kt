@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.TextUnitType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.gmail.strycharz97.hudprompter.viewmodel.PrompterViewModel
+import kotlinx.coroutines.flow.distinctUntilChanged
 
 @Composable
 fun PrompterScreen(viewModel: PrompterViewModel = hiltViewModel(), navigateBack: () -> Unit){
@@ -46,27 +47,11 @@ fun PrompterScreen(viewModel: PrompterViewModel = hiltViewModel(), navigateBack:
   val topPaddingPX = with(LocalDensity.current) { 24.dp.toPx().toInt() } //TODO: padding
   var textLayout by remember { mutableStateOf<TextLayoutResult?>(null) }
 
-    //Updates last visibile index in viewModel when scrolling
-  LaunchedEffect(scrollState) {
-    snapshotFlow { scrollState.value }
-      .collect { scrollPosition ->
-        textLayout?.let {
-          viewModel.updateLastVisibleLine(
-            getLastVisibleLineIndex(
-              it,
-              scrollPosition,
-              viewportHeight
-            )
-          )
-        }
-      }
-  }
-
   Box(
     Modifier
       .fillMaxSize()
       .onSizeChanged { viewportHeight = it.height - topPaddingPX }) {
-    OutlinedButton(onClick = {viewModel.nextLine() }, modifier = Modifier
+    OutlinedButton(onClick = navigateBack, modifier = Modifier
       .align(Alignment.TopStart)
       .padding(4.dp)) {
       Icon(Icons.Filled.ArrowBack, null)
@@ -95,6 +80,16 @@ fun PrompterScreen(viewModel: PrompterViewModel = hiltViewModel(), navigateBack:
       scrollState.animateScrollTo(offset)
     }
   }
+  LaunchedEffect(scrollState, linePositions) {
+    snapshotFlow { scrollState.value }
+      .distinctUntilChanged()
+      .collect { scrollOffset ->
+        val firstVisibleLine = linePositions.indexOfFirst { it >= scrollOffset }
+        if (firstVisibleLine >= 0) {
+          viewModel.updateFirstVisibleIndex(firstVisibleLine)
+        }
+      }
+  }
 }
 
 fun getDisplayedLines(text: String, textLayoutResult: TextLayoutResult): List<String> {
@@ -115,19 +110,4 @@ private fun getLinePositions(textLayoutResult: TextLayoutResult): List<Int> {
     positions.add(lineTop.toInt())
   }
   return positions
-}
-
-private fun getLastVisibleLineIndex(
-  textLayoutResult: TextLayoutResult,
-  scrollOffset: Int,
-  viewportHeight: Int
-): Int {
-  // The visible range is from scrollOffset to (scrollOffset + viewportHeight)
-  val visibleEnd = scrollOffset + viewportHeight
-  // Find the last line where the line's top is less than visibleEnd
-  return List(textLayoutResult.lineCount) { index ->
-    textLayoutResult.getLineTop(index)
-  }.indexOfLast { lineTop ->
-    lineTop < visibleEnd
-  }.coerceAtLeast(0) // Ensure at least 0
 }

@@ -22,19 +22,36 @@ fun MainGraph() {
     composable(Screen.Prompter.route) {
       PrompterScreen() { navController.popBackStack() }
     }
+    composable(Screen.Settings.route) {
+      SettingsScreen() { navController.popBackStack() }
+    }
+    composable(Screen.Help.route) {
+      HelpScreen() { navController.popBackStack() }
+    }
   }
 }
 
 @Composable
 fun MainScreen(navigate: (String) -> Unit){
   Column(modifier = Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+
     Button(onClick = { navigate(Screen.Prompter.route)}) {
       Text(text = "start")
     }
+
+    Button(onClick = { navigate(Screen.Help.route)}) {
+      Text(text = "help")
+    }
+
+    //TODO: add button to go to settings screen
+
   }
 }
 
 sealed class Screen(val route: String) {
   data object Main: Screen("main")
   data object Prompter: Screen("prompter")
+  data object Settings: Screen("settings")
+  data object Help: Screen("help")
+
 }
